@@ -37,8 +37,9 @@ public class Api {
     static void require(boolean ok, String message) {
         if (!ok) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, message);
-    
-        }}
+
+        }
+    }
 
     static String text(String s) {
         require(s != null && !s.isBlank(), "Please complete all required fields.");
@@ -49,8 +50,9 @@ public class Api {
         LoginSession s = sessions.findById(token == null ? "" : token).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Please sign in."));
         if (s.expires.isBefore(Instant.now())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Session expired.");
-        
-        }return accounts.findById(s.accountId).orElseThrow();
+
+        }
+        return accounts.findById(s.accountId).orElseThrow();
     }
 
     Property property(Long id) {
@@ -61,8 +63,9 @@ public class Api {
         Property p = property(id);
         if (!p.ownerId.equals(user(token).id)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the property owner can manage this listing.");
-        
-        }return p;
+
+        }
+        return p;
     }
 
     record Auth(String name, String email, String password, String role) {
@@ -97,8 +100,9 @@ public class Api {
         Account a = accounts.findByEmail(text(b.email()).toLowerCase(Locale.ROOT)).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password."));
         if (b.password() == null || !passwords.matches(b.password(), a.password)) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password.");
-        
-        }return session(a);
+
+        }
+        return session(a);
     }
 
     @GetMapping("/auth/me")
@@ -136,11 +140,12 @@ public class Api {
         p.basePrice = b.basePrice();
         if (p.type.equals("HOTEL")) {
             require(b.standard() >= 0 && b.deluxe() >= 0 && b.executive() >= 0 && b.standard() + b.deluxe() + b.executive() >= 1 && b.standard() + b.deluxe() + b.executive() <= 50, "Hotels must have 1–50 rooms.");
-        
-        }properties.save(p);
+
+        }
+        properties.save(p);
         if (p.type.equals("HOTEL")) {
-            add(p, b.standard(), b.deluxe(), b.executive()); 
-        }else {
+            add(p, b.standard(), b.deluxe(), b.executive());
+        } else {
             Unit u = new Unit();
             u.propertyId = p.id;
             u.name = "Entire property";
@@ -204,11 +209,13 @@ public class Api {
         }
         if (b.location() != null) {
             p.location = text(b.location());
-        
-        }if (b.description() != null) {
+
+        }
+        if (b.description() != null) {
             p.description = b.description();
-        
-        }return properties.save(p);
+
+        }
+        return properties.save(p);
     }
 
     @DeleteMapping("/properties/{id}")
@@ -255,11 +262,13 @@ public class Api {
         for (int i = 0; i < list.size(); i++) {
             if (list.get(i).id.equals(b.firstId())) {
                 first = i;
-            
-            }if (list.get(i).id.equals(b.lastId())) {
+
+            }
+            if (list.get(i).id.equals(b.lastId())) {
                 last = i;
-        
-            }}
+
+            }
+        }
         require(first >= 0 && last >= first, "Choose a valid room range.");
         require(list.size() - (last - first + 1) >= 1, "Keep at least one room.");
         List<Unit> removed = new ArrayList<>();
@@ -315,11 +324,13 @@ public class Api {
         require(v.percent != null && v.percent.signum() >= 0 && v.percent.compareTo(BigDecimal.valueOf(100)) <= 0, "Discount must be 0–100%.");
         if (v.type.equals("DATE")) {
             require(v.date1 != null && v.date1 >= 1 && v.date1 <= 31 && v.date2 != null && v.date2 >= 0 && v.date2 <= 31, "Date days must be 1–31; second day may be 0.");
-        
-        }if (v.type.equals("STAY")) {
+
+        }
+        if (v.type.equals("STAY")) {
             require(v.minNights != null && v.discountedNight != null && v.minNights >= 1 && v.minNights <= 365 && v.discountedNight >= 1 && v.discountedNight <= v.minNights, "Check minimum stay and discounted night.");
-        
-        }return vouchers.save(v);
+
+        }
+        return vouchers.save(v);
     }
 
     @DeleteMapping("/vouchers/{id}")
@@ -362,14 +373,16 @@ public class Api {
                     int d = ((LocalDate) l.get("date")).getDayOfMonth();
                     return d == v.date1 || d == v.date2;
                 }), "Voucher requires a qualifying occupied date.");
-            
-            }if (v.type.equals("STAY")) {
+
+            }
+            if (v.type.equals("STAY")) {
                 require(prices.size() >= v.minNights, "Voucher requires a longer stay.");
                 discount = prices.get(v.discountedNight - 1).multiply(v.percent).divide(BigDecimal.valueOf(100));
             } else {
                 discount = total.multiply(v.percent).divide(BigDecimal.valueOf(100));
-        
-            }}
+
+            }
+        }
         discount = discount.setScale(2, RoundingMode.HALF_UP);
         return Map.of("originalPrice", total, "discount", discount, "finalPrice", total.subtract(discount), "nights", lines);
     }
